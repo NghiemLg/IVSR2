@@ -10,7 +10,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
-import model as myCNN
+from model import myCNN
+
+class SimpleCNN(nn.Module):
+    def __init__(self, num_classes):
+        super(SimpleCNN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.fc1_input_size = 32 * 32 * 32
+        self.fc1 = nn.Linear(self.fc1_input_size, 128)
+        self.fc2 = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = torch.flatten(x, start_dim=1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+    
 
 def plot_confusion_matrix(conf_matrix, classes):
     plt.figure(figsize=(10, 7))
@@ -107,7 +126,7 @@ def train_model(model, criterion, optimizer, epochs, train_loader, val_loader, n
 
 if __name__ == '__main__':
     num_classes = 8
-    model = myCNN(num_classes=num_classes)
+    model = SimpleCNN(num_classes=num_classes)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     epochs = 1  # Tăng số lượng epochs
@@ -117,4 +136,6 @@ if __name__ == '__main__':
     # Tính toán Accuracy Metric
     accuracy = accuracy_score(y_true, y_pred)
     print(f'Accuracy Metric: {accuracy:.4f}')
+
+
 
