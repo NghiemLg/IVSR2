@@ -1,67 +1,48 @@
-from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-from torch.utils.data import random_split
-import os
-from PIL import Image
-from torch.utils.data import Dataset
-import torch
+import matplotlib.pyplot as plt
+import pickle
+from sklearn.metrics import accuracy_score
+import seaborn as sns
+import numpy as np  # Thêm import numpy
 
-class CustomDataset:
-    def __init__(self, root_dir, transform=None):
-        self.root_dir = root_dir
-        self.transform = transform
-        self.image_paths = []
-        self.labels = []
-        self.label_map = {}  # Bản đồ ánh xạ nhãn
-        self._load_data(root_dir)
-        
-        # Tạo một bản đồ ánh xạ nhãn sang số
-        unique_labels = sorted(set(self.labels))
-        self.label_map = {label: idx for idx, label in enumerate(unique_labels)}
+# Nạp lại lịch sử huấn luyện từ file 'history.pkl'
+with open('history.pkl', 'rb') as f:
+    history = pickle.load(f)
 
-    def _load_data(self, current_dir):
-        for entry in os.scandir(current_dir):
-            if entry.is_dir():
-                self._load_data(entry.path)
-            else:
-                if entry.path.endswith(('.png', '.jpg', '.jpeg')):
-                    self.image_paths.append(entry.path)
-                    label = os.path.basename(os.path.dirname(entry.path))  # Lấy tên thư mục gần nhất làm nhãn
-                    self.labels.append(label)
+def plot_accuracy(history):
+    """
+    Vẽ biểu đồ độ chính xác (accuracy) từ lịch sử huấn luyện của mô hình.
+    """
+    y_true = history['y_true']
+    y_pred = history['y_pred']
+    
+    # Tính toán accuracy cho từng epoch
+    accuracy = []
+    for i in range(len(y_true)):
+        accuracy.append(accuracy_score(y_true[i], y_pred[i]))
 
-    def __len__(self):
-        return len(self.image_paths)
+    # Vẽ đồ thị accuracy
+    plt.figure(figsize=(8, 6))
+    plt.plot(accuracy, label='Accuracy')
+    plt.title('Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-    def __getitem__(self, idx):
-        img_path = self.image_paths[idx]
-        image = Image.open(img_path).convert('RGB')
-        label = self.labels[idx]
-        label = self.label_map[label]  # Chuyển nhãn thành số nguyên
+def plot_confusion_matrix(conf_matrix, classes):
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.title('Confusion Matrix')
+    plt.show()
 
-        if self.transform:
-            image = self.transform(image)
+# Gọi hàm vẽ đồ thị
+if __name__ == "__main__":
+    #plot_accuracy(history)
 
-        return image, torch.tensor(label)  # Trả về label dưới dạng tensor
-
-
-# Khởi tạo các transform 
-train_transforms = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.ToTensor(),
-])
-
-# Tạo đối tượng Dataset
-train_dataset = CustomDataset(root_dir=r'D:\New_IVSR\data', transform=train_transforms)
-val_dataset = CustomDataset(root_dir=r'D:\New_IVSR\data', transform=train_transforms) # Giả sử bạn có val_dataset
-
-# Chia theo tỉ lệ 80/20
-dataset_size = len(train_dataset)
-train_size = int(0.8 * dataset_size)
-val_size = dataset_size - train_size
-train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
-
-
-
-# Tạo DataLoader từ dataset
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)  # Tạo val_loader
+    # Hiển thị confusion matrix
+    conf_matrix = history['conf_matrix']
+    num_classes = conf_matrix.shape[0]
+    plot_confusion_matrix(conf_matrix, classes=[f'Lớp {i}' for i in range(num_classes)])
