@@ -40,7 +40,7 @@ def plot_confusion_matrix(conf_matrix, classes):
 
 # Gọi hàm vẽ đồ thị
 if __name__ == "__main__":
-    plot_accuracy(history)
+    #plot_accuracy(history)
 
     # Hiển thị confusion matrix
     conf_matrix = history['conf_matrix']
