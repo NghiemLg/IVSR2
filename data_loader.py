@@ -1,13 +1,10 @@
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-from torch.utils.data import SubsetRandomSampler
+from torch.utils.data import random_split
 import os
 from PIL import Image
 from torch.utils.data import Dataset
 import torch
-import numpy as np
-
-
 
 class CustomDataset:
     def __init__(self, root_dir, transform=None):
@@ -53,26 +50,18 @@ train_transforms = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-# Đường dẫn đến thư mục chứa dữ liệu
-data_dir = r'D:\New_IVSR\data\train'
+# Tạo đối tượng Dataset
+train_dataset = CustomDataset(root_dir=r'D:\New_IVSR\data', transform=train_transforms)
+val_dataset = CustomDataset(root_dir=r'D:\New_IVSR\data', transform=train_transforms) # Giả sử bạn có val_dataset
 
-# Tạo đối tượng Dataset từ thư mục train
-train_dataset = CustomDataset(root_dir=os.path.join(data_dir, 'train'), transform=train_transforms)
-
-# Chia dữ liệu thành train/validation/test với tỷ lệ 80/10/10
+# Chia theo tỉ lệ 80/20
 dataset_size = len(train_dataset)
-indices = list(range(dataset_size))
-np.random.shuffle(indices)
-train_split = int(np.floor(0.8 * dataset_size))
-val_split = int(np.floor(0.1 * dataset_size))
-train_indices, val_indices, test_indices = indices[:train_split], indices[train_split:train_split+val_split], indices[train_split+val_split:]
+train_size = int(0.8 * dataset_size)
+val_size = dataset_size - train_size
+train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
 
-# Tạo SubsetRandomSampler cho tập validation và test
-train_sampler = SubsetRandomSampler(train_indices)
-val_sampler = SubsetRandomSampler(val_indices)
-test_sampler = SubsetRandomSampler(test_indices)
 
-# Tạo DataLoader cho từng tập dữ liệu
-train_loader = DataLoader(train_dataset, batch_size=32, sampler=train_sampler)
-val_loader = DataLoader(train_dataset, batch_size=32, sampler=val_sampler)
-test_loader = DataLoader(train_dataset, batch_size=32, sampler=test_sampler)
+
+# Tạo DataLoader từ dataset
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)  # Tạo val_loader
